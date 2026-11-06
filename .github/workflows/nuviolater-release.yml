@@ -1,0 +1,90 @@
+name: Sync NuvioMobile-Enhanced (No Liquid Glass) & Release APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-patch-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout NuvioLater
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone Upstream luqmanfadlli/NuvioMobile-Enhanced & Remove Liquid Glass
+        run: |
+          set -e
+          git clone --branch enhanced --depth 1 https://github.com/luqmanfadlli/NuvioMobile-Enhanced.git /tmp/nuvio-upstream
+          cp scripts/remove_liquid_glass.py /tmp/nuvio-upstream/scripts/remove_liquid_glass.py
+          python3 /tmp/nuvio-upstream/scripts/remove_liquid_glass.py /tmp/nuvio-upstream
+
+          # Remove upstream CI workflows so only NuvioLater release workflow runs
+          rm -rf /tmp/nuvio-upstream/.github/workflows/*
+          mkdir -p /tmp/nuvio-upstream/.github/workflows
+          cp .github/workflows/nuviolater-release.yml /tmp/nuvio-upstream/.github/workflows/nuviolater-release.yml
+
+          # Sync patched source tree back into current workspace and push to main if not synced yet
+          rsync -a --delete --exclude='.git' /tmp/nuvio-upstream/ ./
+          git config user.name "NuvioLater Bot"
+          git config user.email "actions@github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "NuvioLater: Sync luqmanfadlli/NuvioMobile-Enhanced with Liquid Glass removed in UI & Player [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Android SDK & NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK Packages & Rust Targets (if needed)
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platform-tools" "platforms;android-35" "platforms;android-34" "build-tools;35.0.0" "ndk;27.0.12077973" || true
+          if [ -d "native" ] || [ -f "Cargo.toml" ]; then
+            rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android || true
+            cargo install cargo-ndk || true
+          fi
+
+      - name: Build NuvioLater Android APK (No Liquid Glass)
+        run: |
+          chmod +x ./gradlew
+          export GRADLE_OPTS="-Xmx6g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8"
+          ./gradlew :androidApp:assembleFullDebug --no-daemon --stacktrace || ./gradlew assembleDebug --no-daemon --stacktrace
+          mkdir -p release_apks
+          find . -path "*/build/outputs/apk/*.apk" -exec cp {} release_apks/ \;
+          ls -lh release_apks/
+
+      - name: Publish NuvioLater Release APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: NuvioLater v1.0.${{ github.run_number }} (Nuvio Enhanced without Liquid Glass)
+          body: |
+            Автоматическая сборка **NuvioLater** на базе популярного форка [`luqmanfadlli/NuvioMobile-Enhanced`](https://github.com/luqmanfadlli/NuvioMobile-Enhanced) (ветка `enhanced`).
+            
+            ### Что изменено:
+            - Полностью убран **Liquid Glass** во всём интерфейсе приложения (навигационная панель, поиск потоков, карточки, шторки).
+            - Отключён дефолтный **Liquid Glass** в видеоплеере (в новом и классическом интерфейсе плеера).
+            - Все остальные улучшения `NuvioMobile-Enhanced` сохранены.
+          files: |
+            release_apks/*.apk
+            LIQUID_GLASS_REMOVED.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -217,7 +217,7 @@ class SettingsPagesTest {
                     supportersContributorsPageEnabled = true,
                     accountDeletionEnabled = true,
                     personalMediaAddonCopyEnabled = true,
-                    liquidGlassNativeTabBarSupported = true,
+                    liquidGlassNativeTabBarSupported = false,
                     switchProfileAvailable = true,
                     checkForUpdatesAvailable = true,
                 )
