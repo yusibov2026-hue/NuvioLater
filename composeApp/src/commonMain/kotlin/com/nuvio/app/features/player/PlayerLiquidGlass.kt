@@ -79,6 +79,7 @@ internal fun Modifier.playerLiquidGlass(
     // text needs a backing to stay readable over the video.
     isControl: Boolean = true,
 ): Modifier {
+    if (true) return this
     if (isControl && !LocalPlayerControlGlassEnabled.current) return this
     val glass = clip(shape).ambientLiquidGlass(
         shape = shape,

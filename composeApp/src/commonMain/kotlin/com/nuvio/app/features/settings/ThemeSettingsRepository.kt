@@ -88,7 +88,7 @@ object ThemeSettingsRepository {
     private val _navBarGlass = MutableStateFlow(LiquidGlassStyle.Default)
     val navBarGlass: StateFlow<LiquidGlassStyle> = _navBarGlass.asStateFlow()
 
-    private val _liquidGlassEffectsEnabled = MutableStateFlow(true)
+    private val _liquidGlassEffectsEnabled = MutableStateFlow(false)
     val liquidGlassEffectsEnabled: StateFlow<Boolean> = _liquidGlassEffectsEnabled.asStateFlow()
 
     private var hasLoaded = false
@@ -183,7 +183,7 @@ object ThemeSettingsRepository {
         val storedNavBarGlass = ThemeSettingsStorage.loadNavBarGlass()
         _navBarGlass.value = LiquidGlassStyle.decode(storedNavBarGlass)
         migrateLegacyNavBarGlass(storedNavBarGlass)
-        applyLiquidGlassEffectsEnabled(ThemeSettingsStorage.loadLiquidGlassEffectsEnabled() ?: true)
+        applyLiquidGlassEffectsEnabled(ThemeSettingsStorage.loadLiquidGlassEffectsEnabled() ?: false)
     }
 
     fun setCustomTheme(colors: CustomThemeColors) {

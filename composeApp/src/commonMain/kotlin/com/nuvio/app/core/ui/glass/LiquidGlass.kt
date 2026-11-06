@@ -321,7 +321,7 @@ internal fun Modifier.liquidGlassBlur(
 internal fun isAmbientLiquidGlassActive(): Boolean {
     val backdrop = LocalLiquidGlassBackdrop.current ?: return false
     val host = backdrop as? LiquidGlassBackdropHost
-    return isLiquidGlassSupported() && (host?.isReady ?: true)
+    return isLiquidGlassSupported() && (host?.isReady ?: false)
 }
 
 @Composable
@@ -338,6 +338,7 @@ internal fun Modifier.ambientLiquidGlass(
     fallbackBrush: Brush? = null,
     backdropOpacity: Float = 1f,
 ): Modifier {
+    if (true) return this
     val backdrop = LocalLiquidGlassBackdrop.current
     val host = backdrop as? LiquidGlassBackdropHost
     if (host != null) {
