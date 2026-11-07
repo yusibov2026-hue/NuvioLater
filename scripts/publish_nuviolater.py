@@ -5,7 +5,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 import time
 import urllib.request
 
@@ -14,11 +13,8 @@ def get_token():
     h = XOR_REV[::-1]
     return "".join(chr(int(h[i:i+2], 16) ^ 0x5A) for i in range(0, len(h), 2))
 
+TARGET_REPO = "yusibov2026-hue/NuvioLater"
 UPSTREAM_REPO = "luqmanfadlli/NuvioMobile-Enhanced"
-TARGET_REPOS = [
-    "yusibov2026-hue/NuvioLater",
-    "yusibov2026-hue/SubLater",
-]
 
 def gh_api(method, url, data=None, content_type="application/json", raw_body=None):
     tok = get_token()
@@ -103,62 +99,13 @@ def patch_apk_remove_liquid_glass(in_apk, out_apk, keystore_path):
         print("APK smali patch fallback:", e)
         shutil.copy2(in_apk, out_apk)
 
-def publish_to_repo(repo_slug, built_apks):
-    try:
-        try:
-            repo_info = gh_api("GET", f"https://api.github.com/repos/{repo_slug}")
-        except Exception:
-            if repo_slug.endswith("/NuvioLater"):
-                repo_info = gh_api("POST", "https://api.github.com/user/repos", {
-                    "name": "NuvioLater",
-                    "description": "Nuvio Mobile Enhanced fork without Liquid Glass (UI & Player)",
-                    "private": False,
-                    "auto_init": True
-                })
-            else:
-                return
-
-        default_branch = repo_info.get("default_branch", "main")
-        existing_rels = gh_api("GET", f"https://api.github.com/repos/{repo_slug}/releases?per_page=5")
-        if isinstance(existing_rels, list) and repo_slug.endswith("/NuvioLater"):
-            for r in existing_rels:
-                if not r.get("assets"):
-                    try:
-                        gh_api("DELETE", f"https://api.github.com/repos/{repo_slug}/releases/{r['id']}")
-                    except Exception:
-                        pass
-
-        tag_name = f"nuviolater-v1.0.{int(time.time()) % 100000}"
-        rel_info = gh_api("POST", f"https://api.github.com/repos/{repo_slug}/releases", {
-            "tag_name": tag_name,
-            "target_commitish": default_branch,
-            "name": "NuvioLater v1.0 — Nuvio Enhanced без Liquid Glass (APK)",
-            "body": (
-                "Готовая сборка **NuvioLater** на базе [`luqmanfadlli/NuvioMobile-Enhanced`](https://github.com/luqmanfadlli/NuvioMobile-Enhanced) "
-                "с полностью отключённым **Liquid Glass** во всём интерфейсе и в видеоплеере по умолчанию.\n\n"
-                "### Скачать APK:\n"
-                "- Скачайте **`NuvioLater-NoLiquidGlass-arm64-v8a.apk`** ниже."
-            ),
-            "draft": False,
-            "prerelease": False
-        })
-
-        upload_url_tmpl = rel_info["upload_url"].split("{")[0]
-        for apk_name, apk_path in built_apks:
-            up_url = f"{upload_url_tmpl}?name={apk_name}"
-            with open(apk_path, "rb") as af:
-                apk_bytes = af.read()
-            print(f"Uploading {apk_name} ({len(apk_bytes)} bytes) to {repo_slug}...")
-            gh_api("POST", up_url, content_type="application/vnd.android.package-archive", raw_body=apk_bytes)
-        print(f"Published NuvioLater APK to {repo_slug}/releases!")
-    except Exception as e:
-        print(f"Error publishing to {repo_slug}:", e)
-
 def main():
+    os.makedirs("release_apks", exist_ok=True)
     latest_rel = gh_api("GET", f"https://api.github.com/repos/{UPSTREAM_REPO}/releases/latest")
     assets = latest_rel.get("assets", [])
     arm64_assets = [a for a in assets if a.get("name", "").endswith(".apk") and "arm64-v8a" in a.get("name", "")]
-    target_assets = arm64_assets[:1] if arm64_assets else [a for a in assets if a.get("name", "").endswith(".apk")][:1]
+    v7a_assets = [a for a in assets if a.get("name", "").endswith(".apk") and "armeabi-v7a" in a.get("name", "")]
+    target_assets = (arm64_assets[:1] + v7a_assets[:1]) or [a for a in assets if a.get("name", "").endswith(".apk")][:1]
 
     ks_path = "/tmp/nuviolater_debug.keystore"
     if not os.path.exists(ks_path):
@@ -171,20 +118,17 @@ def main():
             "-dname", "CN=Android Debug,O=Android,C=US"
         ], check=True)
 
-    built_apks = []
     for asset in target_assets:
         orig_name = asset["name"]
         dl_url = asset["browser_download_url"]
         in_apk = f"/tmp/{orig_name}"
-        out_name = "NuvioLater-NoLiquidGlass-arm64-v8a.apk"
-        out_apk = f"/tmp/{out_name}"
+        arch = "arm64-v8a" if "arm64-v8a" in orig_name else ("armeabi-v7a" if "armeabi-v7a" in orig_name else "universal")
+        out_name = f"NuvioLater-NoLiquidGlass-{arch}.apk"
+        out_apk = os.path.join("release_apks", out_name)
         print(f"Downloading {orig_name}...")
         urllib.request.urlretrieve(dl_url, in_apk)
         patch_apk_remove_liquid_glass(in_apk, out_apk, ks_path)
-        built_apks.append((out_name, out_apk))
-
-    for repo_slug in TARGET_REPOS:
-        publish_to_repo(repo_slug, built_apks)
+        print(f"Ready: {out_apk} ({os.path.getsize(out_apk)} bytes)")
 
 if __name__ == "__main__":
     main()
