@@ -1,4 +1,4 @@
-name: Build & Release NuvioLater APK (No Liquid Glass)
+name: Build & Release Nuvio Lateral APK (No Liquid Glass)
 
 on:
   push:
@@ -23,28 +23,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build NuvioLater APK without Liquid Glass (UI & Player)
+      - name: Build and Publish Nuvio Lateral APK (No Liquid Glass)
         run: |
           python3 scripts/publish_nuviolater.py
           ls -lh release_apks/
-
-      - name: Create GitHub Release and Attach NuvioLater APK
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: NuvioLater Release v1.0.${{ github.run_number }} (No Liquid Glass APK)
-          body: |
-            Готовая сборка **NuvioLater** на базе популярного форка [`luqmanfadlli/NuvioMobile-Enhanced`](https://github.com/luqmanfadlli/NuvioMobile-Enhanced) (ветка `enhanced`).
-            
-            ### Что изменено:
-            - Полностью убран **Liquid Glass** во всём интерфейсе приложения.
-            - Отключён дефолтный **Liquid Glass** в видеоплеере (в новом и классическом интерфейсе плеера).
-            
-            ### Установка на Android:
-            - Скачайте **`NuvioLater-NoLiquidGlass-arm64-v8a.apk`** ниже (для современных смартфонов) или `armeabi-v7a.apk`.
-          files: release_apks/*.apk
-          draft: false
-          prerelease: false
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
