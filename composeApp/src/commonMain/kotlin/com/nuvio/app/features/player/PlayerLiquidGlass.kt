@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,7 +31,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.Backdrop
 import com.nuvio.app.core.ui.glass.LiquidGlassBackdropHost
-import com.nuvio.app.core.ui.glass.ambientLiquidGlass
 import kotlin.math.roundToInt
 
 internal val PlayerGlassTint = Color(0xFF101014).copy(alpha = 0.52f)
@@ -51,8 +51,8 @@ internal val PlayerGlassSurfaceTint = Color.White.copy(alpha = 0.05f)
  */
 internal const val PlayerGlassBackdropOpacity = 0.55f
 
-/** Used when there is no live backdrop (Android < 12, protected/DRM video, glass turned off). */
-internal val PlayerGlassFallback = Color.White.copy(alpha = 0.08f)
+/** Flat translucent backing used by every player control now that the liquid glass effect is gone. */
+internal val PlayerGlassFallback = Color(0xFF101014).copy(alpha = 0.55f)
 
 /** Hairline rim that sells the glass edge on top of Kyant's highlight. */
 internal val PlayerGlassRim = Color.White.copy(alpha = 0.22f)
@@ -66,6 +66,7 @@ internal val LocalPlayerControlGlassEnabled = staticCompositionLocalOf { true }
  * [rememberVideoFrameBackdrop]. Falls back to a translucent fill when the backdrop isn't available.
  */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 internal fun Modifier.playerLiquidGlass(
     shape: Shape,
     blurRadius: Dp = PlayerGlassBlur,
@@ -75,24 +76,13 @@ internal fun Modifier.playerLiquidGlass(
     fallback: Color = PlayerGlassFallback,
     backdropOpacity: Float = PlayerGlassBackdropOpacity,
     rim: Boolean = true,
-    // Panels (e.g. chapters) keep their glass when the control backings are turned off: their
+    // Panels (e.g. chapters) keep their backing when the control backings are turned off: their
     // text needs a backing to stay readable over the video.
     isControl: Boolean = true,
 ): Modifier {
     if (isControl && !LocalPlayerControlGlassEnabled.current) return this
-    val glass = clip(shape).ambientLiquidGlass(
-        shape = shape,
-        tint = tint,
-        fallback = fallback,
-        blurRadius = blurRadius,
-        refractionHeight = refractionHeight,
-        refractionAmount = refractionAmount,
-        withVibrancy = true,
-        withHighlight = true,
-        withShadow = false,
-        backdropOpacity = backdropOpacity,
-    )
-    return if (rim) glass.border(0.75.dp, PlayerGlassRim, shape) else glass
+    val surface = clip(shape).background(fallback)
+    return if (rim) surface.border(0.75.dp, PlayerGlassRim, shape) else surface
 }
 
 // Keep the captured frame identical to the real picture so the glass reads as transparent (no dimming).

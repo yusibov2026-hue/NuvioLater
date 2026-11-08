@@ -1,0 +1,4 @@
+# Memoria del proyecto
+
+- 2026-11-07: Se retiró el «liquid glass» del reproductor: `playerLiquidGlass` pinta un fondo plano translúcido (sin Kyant/blur/refracción) y `PlayerScreenContent` ya no provee el backdrop de captura de vídeo (PixelCopy). Los paneles que llaman a `ambientLiquidGlass` caen a su color `fallback` al no haber backdrop.
+- 2026-11-08: Compilar localmente está bloqueado: (1) el init script de Hefesto `/opt/android-sdk/hefesto/sqlite.init.gradle` fuerza `resolvedConfiguration` sobre `fullDebugRuntimeClasspath` y choca con los artefactos divididos del plugin KMP/AGP 9 (`composeApp` sin `artifactType`); CI no usa ese script y sí compila. (2) `native/` usa edición Rust 2024 y requiere Rust ≥1.85 + cargo-ndk + std de Android; Ágora instala Rust 1.75 (insuficiente). `assembleDebug` exige `-Pnuvio.android.distribution=full`; se dejó `local.properties` con `NUVIO_ANDROID_DISTRIBUTION=full`.

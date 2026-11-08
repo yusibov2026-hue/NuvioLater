@@ -37,3 +37,15 @@ iosApp/Configuration/DeviceSigning.local.json
 
 # Local MPVKit iOS build environment (sparse APFS image, see MPVKit docs)
 .mpvkit-build.sparseimage
+
+# Hefesto: lo que no debe subir a GitHub
+Thumbs.db
+*.log
+*.tmp
+.agent/
+.papelera/
+build/
+*.apk
+*.aab
+*.keystore
+*.jks

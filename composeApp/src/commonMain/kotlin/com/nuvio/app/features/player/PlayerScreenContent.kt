@@ -45,8 +45,6 @@ import nuvio.composeapp.generated.resources.parental_severity_severe
 import nuvio.composeapp.generated.resources.parental_violence
 import nuvio.composeapp.generated.resources.compose_player_tba
 import org.jetbrains.compose.resources.stringResource
-import com.nuvio.app.core.ui.glass.LocalLiquidGlassBackdrop
-import com.nuvio.app.core.ui.glass.isLiquidGlassSupported
 
 @Composable
 internal fun PlayerScreenContent(args: PlayerScreenArgs) {
@@ -198,7 +196,6 @@ internal fun PlayerScreenContent(args: PlayerScreenArgs) {
         runtime.BindMiniPlayerEffects(miniPresentation)
         runtime.BindPlayerRuntimeEffects()
         CompositionLocalProvider(
-            LocalLiquidGlassBackdrop provides rememberVideoFrameBackdrop(enabled = !runtime.isMiniPresentation && isLiquidGlassSupported()),
             LocalPlayerControlGlassEnabled provides playerSettingsUiState.playerControlGlassEnabled,
         ) {
             runtime.RenderPlayerRuntimeUi(
